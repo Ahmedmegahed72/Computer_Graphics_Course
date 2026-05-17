@@ -1,0 +1,177 @@
+#include<Windows.h>
+#include<iostream>
+#include<gl/glut.h>
+using namespace std;
+
+float width, heigh,
+matamb[] = { 0.0215f,0.53f,0.0215f,1.0f },
+matdiff[] = { 0.48f,0.64f,0.36f,1.0f },
+matspec[] = { 0.54f,0.72f,0.76f,1.0f },
+matshin[] = { 76 },
+lightamb[] = { 1,0,1,1 },
+lightdiff[] = { 0,.6,.6,1 },
+lightspec[] = { .2,.2,.2,1 },
+lightPos[] = { 1.0, 1.0, 1.0, 1.0 };
+bool fullScreen;
+float ratio, angle;
+
+void background();
+void mydraw();
+void reshape(int, int);
+void timer(int);
+void keyboard(unsigned char, int, int);
+void specialKeyboard(int, int, int);
+
+void main(int argc, char** argv) {
+	width = GetSystemMetrics(SM_CXSCREEN);
+	heigh = GetSystemMetrics(SM_CYSCREEN);
+	glutInit(&argc, argv);
+	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE);
+	glutInitWindowSize(width, heigh);
+	glutCreateWindow(" 3D shapes and animation");
+	//glutFullScreen();
+	background();
+	glutDisplayFunc(mydraw);
+	glutReshapeFunc(reshape);
+	glutTimerFunc(0, timer, 0);
+	glutKeyboardFunc(keyboard);
+	glutSpecialFunc(specialKeyboard);
+
+	glutMainLoop();
+}
+
+void background() {
+	glClearColor(0, 0, 0, 1);
+	glEnable(GL_DEPTH_TEST);
+
+	glEnable(GL_LIGHTING);
+	glEnable(GL_LIGHT0);
+
+	glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
+	glLightfv(GL_LIGHT0, GL_AMBIENT, lightamb);
+	glLightfv(GL_LIGHT0, GL_SPECULAR, lightspec);
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, lightdiff);
+
+	glMaterialfv(GL_FRONT, GL_AMBIENT, matamb);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, matdiff);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, matspec);
+	glMaterialfv(GL_FRONT, GL_SHININESS, matshin);
+}
+
+void mydraw() {
+	glClear(GL_COLOR_BUFFER_BIT |
+		GL_DEPTH_BUFFER_BIT);
+	glLoadIdentity();
+
+	glTranslatef(1.5, 0, -7);
+	glRotatef(angle, 1, 1, 1);
+	glBegin(GL_QUADS);
+	//top
+	glColor3f(1, 0, 0);
+	glVertex3f(1, 1, -1);
+	glVertex3f(-1, 1, -1);
+	glVertex3f(-1, 1, 1);
+	glVertex3f(1, 1, 1);
+
+	//botton
+	glVertex3f(1, -1, -1);
+	glVertex3f(-1, -1, -1);
+	glVertex3f(-1, -1, 1);
+	glVertex3f(1, -1, 1);
+
+	//right
+	glVertex3f(1, 1, -1);
+	glVertex3f(1, -1, -1);
+	glVertex3f(1, -1, 1);
+	glVertex3f(1, 1, 1);
+
+	//left
+	glVertex3f(-1, 1, -1);
+	glVertex3f(-1, -1, -1);
+	glVertex3f(-1, -1, 1);
+	glVertex3f(-1, 1, 1);
+
+	//back
+	glVertex3f(1, 1, -1);
+	glVertex3f(-1, 1, -1);
+	glVertex3f(-1, -1, -1);
+	glVertex3f(1, -1, -1);
+
+	//front
+	glVertex3f(1, 1, 1);
+	glVertex3f(-1, 1, 1);
+	glVertex3f(-1, -1, 1);
+	glVertex3f(1, -1, 1);
+	glEnd();
+
+	glLoadIdentity();
+	glTranslatef(-1, 0, -5);
+	glRotatef(angle, 1, 0, 0);
+	glBegin(GL_TRIANGLES);
+	//front
+	glColor3f(0, 1, 0);
+	glVertex3f(0, 1, 0);
+	glVertex3f(-1, -1, 1);
+	glVertex3f(1, -1, 1);
+
+	//right
+	glColor3f(0, 0, 1);
+	glVertex3f(0, 1, 0);
+	glVertex3f(1, -1, -1);
+	glVertex3f(1, -1, 1);
+
+	//left
+	glColor3f(0, .5, .5);
+	glVertex3f(0, 1, 0);
+	glVertex3f(-1, -1, -1);
+	glVertex3f(-1, -1, 1);
+
+	//back
+	glColor3f(.1, .7, .6);
+	glVertex3f(0, 1, 0);
+	glVertex3f(-1, -1, -1);
+	glVertex3f(1, -1, -1);
+	glEnd();
+
+	glBegin(GL_QUADS);
+	glColor3f(.2, .3, .6);
+	glVertex3f(-1, -1, 1);
+	glVertex3f(1, -1, 1);
+	glVertex3f(1, -1, -1);
+	glVertex3f(-1, -1, -1);
+	glEnd();
+	glutSwapBuffers();
+}
+
+void reshape(int w, int h) {
+	if (h == 0) h = 1;
+	ratio = w / (float)h;
+	glViewport(0, 0, w, h);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluPerspective(45, ratio, 1, 100);
+	glMatrixMode(GL_MODELVIEW);
+}
+
+void timer(int v) {
+	glutPostRedisplay();
+	glutTimerFunc(30, timer, 0);
+	angle += 1.9;
+}
+
+void keyboard(unsigned char key, int x, int y) {
+	if (key == 27)
+		exit(0);
+}
+
+void specialKeyboard(int key, int x, int y) {
+	if (key == GLUT_KEY_F1) {
+		fullScreen = !fullScreen;
+		if (fullScreen)
+			glutFullScreen();
+		else {
+			glutPositionWindow(10, 10);
+			glutReshapeWindow(600, 600);
+		}
+	}
+}

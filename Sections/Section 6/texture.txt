@@ -1,0 +1,227 @@
+#define STB_IMAGE_IMPLEMENTATION
+#include<iostream>
+#include<cmath>
+#include<Windows.h>
+#include <gl/stb_image.h>
+#include<gl/glut.h>
+
+unsigned int texture;
+int width, height, nrChannels;
+unsigned char *data = NULL;
+bool fullScreen;
+float ratio , angle ,eyey, eyez , eyex , upx , upz = -20 ;
+void background();
+void mydraw();
+void reshape( int , int );
+void timer( int );
+void keyboard ( unsigned char , int , int );
+void specialKeyboard (int , int , int);
+void mouse(int,int,int,int);
+void load ( int imgnum );
+void check (unsigned char *data);
+//GLuint loadTexture(Image* image);
+void main ( int argc , char** argv){
+	
+	glutInit( &argc , argv);
+	glutInitDisplayMode(GLUT_RGB| GLUT_DOUBLE);
+	glutInitWindowSize(GetSystemMetrics(SM_CXSCREEN),
+		GetSystemMetrics(SM_CYSCREEN));
+	glutCreateWindow(" 3D shapes and animation");
+	//glutFullScreen();
+	background();
+	glutDisplayFunc(mydraw);
+	glutReshapeFunc(reshape);
+	glutTimerFunc(0,timer,0);
+	glutKeyboardFunc(keyboard);
+	glutSpecialFunc(specialKeyboard);
+	glutMouseFunc(mouse);
+	glutMainLoop();
+}
+
+void background(){
+	glClearColor(0,0,0,1);
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_TEXTURE_2D);
+	
+
+}
+
+void mydraw(){
+	glClear( GL_COLOR_BUFFER_BIT |
+		GL_DEPTH_BUFFER_BIT);
+	glLoadIdentity();
+	gluLookAt( eyex , eyey , eyez ,
+				upx , eyey , upz ,
+				0, 1 , 0);
+	glTranslatef(0,0,-7);
+	load(1);
+
+
+
+	//glRotatef(angle,1,1,1);
+	glBegin(GL_QUADS);
+	//bottom
+	//glColor3f(1,0,0);
+	
+	//glColor3f(.4,.7,.1);
+	glTexCoord2d(0.0f,0.0f);
+	glVertex3f( 4,-2,10);
+	glTexCoord2d(1.0f,0.0f);
+    	glVertex3f(-4,-2,10);
+	glTexCoord2d(1.0f,1.0f);
+    	glVertex3f(-4,-2,-10);
+	glTexCoord2d(0.0f,1.0f);
+   	glVertex3f(4,-2,-10);
+
+	glEnd();
+
+	//back
+	load(2);
+	glBegin(GL_QUADS);
+	glTexCoord2d(0.0f,0.0f);
+	glVertex3f( -4,-2,-10);
+	glTexCoord2d(8.0f,0.0f);
+   	glVertex3f(4,-2,-10);
+	glTexCoord2d(8.0f,8.0f);
+    	glVertex3f(4,6,-10);
+	glTexCoord2d(0.0f,8.0f);
+    	glVertex3f(-4,6,-10);
+
+	glEnd();
+
+	//left
+	load(2);
+	glBegin(GL_QUADS);
+	glTexCoord2d(0.0f,0.0f);
+	glVertex3f( -4,-2,-10);
+	glTexCoord2d(1.0f,0.0f);
+	glVertex3f(-4,-2,10);
+	glTexCoord2d(1.0f,1.0f);
+	glVertex3f(-4,6,10);
+	glTexCoord2d(0.0f,1.0f);
+	glVertex3f(-4,6,-10);
+	glEnd();
+
+	//right
+	load(2);
+	glBegin(GL_QUADS);
+	glTexCoord2d(0.0f,0.0f);
+	glVertex3f( 4,-2,-10);
+	glTexCoord2d(1.0f,0.0f);
+	glVertex3f(4,-2,10);
+	glTexCoord2d(1.0f,1.0f);
+	glVertex3f(4,6,10);
+	glTexCoord2d(0.0f,1.0f);
+	glVertex3f(4,6,-10);
+	glEnd();
+	
+	glutSwapBuffers();
+}
+
+void reshape( int w , int h ){
+	if( h == 0 ) h = 1 ;
+	ratio = w / (float)h ; 
+	glViewport(0,0,w,h);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluPerspective(45,ratio,1,100);
+	glMatrixMode(GL_MODELVIEW);
+}
+
+void timer( int v ){
+	glutPostRedisplay();
+	glutTimerFunc(30,timer,0);
+	
+}
+
+void keyboard ( unsigned char key, int x, int y){
+	angle += 4;
+	if( key == 27)
+		exit(0);
+	if( key == 'a')
+	{
+		upx -= .9*cos(.1);
+		upz -= .9 * sin(.1);
+	}
+	if( key == 'd'){
+		upx += .9*cos(.1);
+		upz += .9 * sin(.1);
+	}
+	if( key == 'w')
+	{
+		eyez -= 5;
+		eyey = .3*abs(cos(angle));
+	}
+	if( key == 's'){
+		eyez += 5;
+		eyey = .3*abs(cos(angle));
+	}
+}
+
+void specialKeyboard (int key, int x, int y){
+	angle += .4;
+	if( key == GLUT_KEY_F1){
+		fullScreen = !fullScreen;
+		if(fullScreen)
+			glutFullScreen();
+		else{
+			glutPositionWindow(10,10);
+			glutReshapeWindow(600,600);
+		}
+	}
+	if( key == GLUT_KEY_RIGHT){
+		upx += .9*cos(.1);
+		upz += .9 * sin(.1);
+	}
+	if( key == GLUT_KEY_LEFT){
+		upx -= .9*cos(.1);
+		upz -= .9 * sin(.1);
+	}
+	if( key == GLUT_KEY_DOWN){
+		//y = .3*abs(cos(angle));
+		eyez += 5;
+		eyey = .3*abs(cos(angle));
+	}
+	if( key == GLUT_KEY_UP){
+		eyez -= 5;
+		eyey = .3*abs(cos(angle));
+	}
+}
+
+void mouse(int button ,int state ,int x ,int y ){
+	//cout<<(int)(((x-(width/2))*100)/(width/2))
+		//<<endl<<
+	//	(int)((((heigh/2)-y)*100)/(heigh/2))<<"\n\\\\\\\\\\\\\\\\\\"<<"\n";
+}
+
+void load ( int imgnum ){
+	if( imgnum == 1){
+		
+		data= stbi_load("wall.bmp", &width, &height, &nrChannels, 0);
+		check(data);
+	}
+	else if( imgnum == 2){
+		
+		data= stbi_load("container.jpg", &width, &height, &nrChannels, 0);
+		check(data);
+	}
+}
+
+void check (unsigned char *data){
+	if (data)
+		{
+			glGenTextures(1, &texture);
+			glBindTexture(GL_TEXTURE_2D, texture);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		}
+		else
+		{
+			std::cout << "Failed to load texture" << std::endl;
+		}
+		stbi_image_free(data);
+}

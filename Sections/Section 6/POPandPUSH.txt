@@ -1,0 +1,127 @@
+#include<Windows.h>
+#include<iostream>
+#include<gl/glut.h>
+using namespace std;
+
+float width , heigh;
+bool fullScreen;
+float ratio , a1 , a2;
+void background();
+void mydraw();
+void reshape( int , int );
+void timer( int );
+void keyboard ( unsigned char , int , int );
+void specialKeyboard (int , int , int);
+void mouse(int,int,int,int);
+void main ( int argc , char** argv){
+	width = GetSystemMetrics(SM_CXSCREEN);
+	heigh = GetSystemMetrics(SM_CYSCREEN);
+	glutInit( &argc , argv);
+	glutInitDisplayMode(GLUT_RGB| GLUT_DOUBLE);
+	glutInitWindowSize(width,heigh);
+	glutCreateWindow(" 3D shapes and animation");
+	//glutFullScreen();
+	background();
+	glutDisplayFunc(mydraw);
+	glutReshapeFunc(reshape);
+	glutTimerFunc(0,timer,0);
+	glutKeyboardFunc(keyboard);
+	glutSpecialFunc(specialKeyboard);
+	glutMouseFunc(mouse);
+	glutMainLoop();
+}
+
+void background(){
+	glClearColor(1,1,1,1);
+	glEnable(GL_DEPTH_TEST);
+}
+
+void mydraw(){
+	glClear( GL_COLOR_BUFFER_BIT |
+		GL_DEPTH_BUFFER_BIT);
+	glLoadIdentity();
+	glTranslatef(0,0,-10);
+	glBegin(GL_LINES);
+	glColor3f(1,0,0);
+	glVertex3f(0,0,0);
+	glVertex3f(2,0,0);
+	glEnd();
+	glTranslatef(2,0,0);
+	glRotatef(a2,0,0,1);
+	glBegin(GL_LINES);
+	glColor3f(0,1,0);
+	glVertex3f(0,0,0);
+	glVertex3f(0,-1,0);
+	glEnd();
+	
+	glTranslatef(0,-1,0);
+	glPushMatrix();
+	glBegin(GL_LINES);
+	glColor3f(0,1,1);
+	glVertex3f(0,0,0);
+	glVertex3f(-1,-1,0);
+	glEnd();
+	glPopMatrix();
+	
+	glBegin(GL_LINES);
+	glColor3f(0,0,1);
+	glVertex3f(0,0,0);
+	glVertex3f(1,-1,0);
+	glEnd();
+	glTranslatef(1,-1,0);
+	glPushMatrix();
+	glRotatef(a1,0,0,1);
+	glBegin(GL_LINES);
+	glColor3f(.5,.5,1);
+	glVertex3f(0,0,0);
+	glVertex3f(-1,-1,0);
+	glEnd();
+	glPopMatrix();
+	glBegin(GL_LINES);
+	glColor3f(.5,.5,1);
+	glVertex3f(0,0,0);
+	glVertex3f(1,-1,0);
+	glEnd();
+	glPopMatrix();
+	glutSwapBuffers();
+}
+
+void reshape( int w , int h ){
+	if( h == 0 ) h = 1 ;
+	ratio = w / (float)h ; 
+	glViewport(0,0,w,h);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluPerspective(45,ratio,1,100);
+	glMatrixMode(GL_MODELVIEW);
+}
+
+void timer( int v ){
+	glutPostRedisplay();
+	glutTimerFunc(30,timer,0);
+	a1 +=0.5;
+	a2 +=0.5;
+}
+
+void keyboard ( unsigned char key, int x, int y){
+	if( key == 27)
+		exit(0);
+}
+
+void specialKeyboard (int key, int x, int y){
+	if( key == GLUT_KEY_F1){
+		fullScreen = !fullScreen;
+		if(fullScreen)
+			glutFullScreen();
+		else{
+			glutPositionWindow(10,10);
+			glutReshapeWindow(600,600);
+		}
+	}
+}
+
+void mouse(int button ,int state ,int x ,int y ){
+	cout<<(int)(((x-(width/2))*100)/(width/2))
+		<<endl<<
+		(int)((((heigh/2)-y)*100)/(heigh/2))<<"\n\\\\\\\\\\\\\\\\\\"<<"\n";
+}

@@ -1,0 +1,194 @@
+#include <Windows.h>
+#include <GL\glut.h>
+
+// Window properties
+int windowWidth = 640;
+int windowHeight = 480;
+int windowPosX = 50;
+int windowPosY = 50;
+
+// Square position
+float squareX = 0.0;
+float squareY = 0.0;
+float XMax, XMin, YMax, YMin;
+float xSpeed = 0.3;
+float ySpeed = 0.3;
+int refreshMillis = 1000 / 30;
+bool red = 1;
+
+// Projection clipping area
+double clipAreaXLeft, clipAreaXRight, clipAreaYBottom, clipAreaYTop;
+
+// Fullscreen and pause
+bool fullScreen = true;
+bool paused = false;
+float xSpeedSaved, ySpeedSaved;
+
+// Function prototypes
+void draw();
+void background();
+void resize(int, int);
+void timer(int);
+void specialKeys(int, int, int);
+void keyboard(unsigned char, int, int);
+void mouse(int, int, int, int);
+
+void main(int argc, char** argv)
+{
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
+    glutCreateWindow("Square (Fixed Size)");
+    glutFullScreen();
+
+    glutReshapeFunc(resize);
+    glutDisplayFunc(draw);
+    glutTimerFunc(0, timer, 0);
+    glutSpecialFunc(specialKeys);
+    glutKeyboardFunc(keyboard);
+    glutMouseFunc(mouse);
+
+    background();
+    glutMainLoop();
+}
+
+// Draw a square
+void draw()
+{
+    glClear(GL_COLOR_BUFFER_BIT);
+    glLoadIdentity();
+    glTranslatef(squareX, squareY, 0);
+
+    glBegin(GL_QUADS);
+    glColor3f(red, 0, 0); // Red or black toggle
+    glVertex2f(-2, -2);
+    glVertex2f(2, -2);
+    glVertex2f(2, 2);
+    glVertex2f(-2, 2);
+    glEnd();
+
+    glutSwapBuffers();
+}
+
+// Resize
+void resize(int w, int h)
+{
+    if (h == 0) h = 1;
+    float ratio = (float)w / h;
+    glViewport(0, 0, w, h);
+
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+
+    if (w >= h)
+    {
+        clipAreaXLeft = -10 * ratio;
+        clipAreaXRight = 10 * ratio;
+        clipAreaYBottom = -10;
+        clipAreaYTop = 10;
+    }
+    else
+    {
+        clipAreaXLeft = -10;
+        clipAreaXRight = 10;
+        clipAreaYBottom = -10 / ratio;
+        clipAreaYTop = 10 / ratio;
+    }
+
+    gluOrtho2D(clipAreaXLeft, clipAreaXRight, clipAreaYBottom, clipAreaYTop);
+    XMax = clipAreaXRight - 2;
+    XMin = clipAreaXLeft + 2;
+    YMax = clipAreaYTop - 2;
+    YMin = clipAreaYBottom + 2;
+
+    glMatrixMode(GL_MODELVIEW);
+
+}
+
+// Timer
+void timer(int v)
+{
+    glutPostRedisplay();
+    glutTimerFunc(refreshMillis, timer, 0);
+}
+
+// Background color
+void background()
+{
+    glClearColor(0, 0, 1, 0); // Blue background
+}
+
+// Keyboard
+void keyboard(unsigned char key, int x, int y)
+{
+    switch (key)
+    {
+    case 27: 
+        exit(0); 
+        break;
+    case 'r': 
+        red = !red; 
+        break;
+    }
+}
+
+// Special keys
+void specialKeys(int key, int x, int y)
+{
+    switch (key)
+    {
+    case GLUT_KEY_F1:
+        fullScreen = !fullScreen;
+        if (fullScreen)
+        {
+            windowPosX = glutGet(GLUT_WINDOW_X);
+            windowPosY = glutGet(GLUT_WINDOW_Y);
+            windowWidth = glutGet(GLUT_WINDOW_WIDTH);
+            windowHeight = glutGet(GLUT_WINDOW_HEIGHT);
+            glutFullScreen();
+        }
+        else
+        {
+            glutReshapeWindow(windowWidth, windowHeight);
+            glutPositionWindow(windowPosX, windowPosY);
+        }
+        break;
+
+    case GLUT_KEY_RIGHT:
+        if (squareX < XMax)
+            squareX += xSpeed;
+        break;
+    case GLUT_KEY_LEFT:
+        if (squareX > XMin)
+            squareX -= xSpeed;
+        break;
+    case GLUT_KEY_UP:
+        if (squareY < YMax)
+            squareY += ySpeed;
+        break;
+    case GLUT_KEY_DOWN:
+        if (squareY > YMin)
+            squareY -= ySpeed;
+        break;
+    }
+}
+
+// Mouse click to pause
+void mouse(int button, int state, int x, int y)
+{
+    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
+    {
+        paused = !paused;
+        if (paused)
+        {
+            xSpeedSaved = xSpeed;
+            ySpeedSaved = ySpeed;
+            xSpeed = 0;
+            ySpeed = 0;
+        }
+        else
+        {
+            xSpeed = xSpeedSaved;
+            ySpeed = ySpeedSaved;
+        }
+    }
+}

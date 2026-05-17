@@ -1,0 +1,139 @@
+#include <windows.h>
+#include <GL/glut.h>
+
+GLfloat anglePyramid = 0;
+GLfloat angleCube = 0;
+
+float camX = 0.0f;
+float camZ = 10.0f;
+float speed = 0.5f;
+
+void background() {
+    glClearColor(0, 0, 0, 1);
+    glEnable(GL_DEPTH_TEST);
+}
+
+void reshape(int width, int height) {
+    if (height == 0) height = 1;
+    float ratio = (float)width / height;
+
+    glViewport(0, 0, width, height);
+
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluPerspective(45, ratio, 0.1, 100);
+    /*gluLookAt(
+      -2,5,8,
+      1,1,-5,
+      0,1,0
+      );*/
+    glMatrixMode(GL_MODELVIEW);
+}
+void drawRoom(float zOffset) {
+    float size = 10;
+
+    glBegin(GL_QUADS);
+
+    ////////////////// الأرضية //////////////////
+    glColor3f(0.75, 0.73, 0.7);
+    glVertex3f(-size, -2, zOffset - size);
+    glVertex3f(size, -2, zOffset - size);
+    glVertex3f(size, -2, zOffset + size);
+    glVertex3f(-size, -2, zOffset + size);
+
+    ////////////////// الحيطة الشمال //////////////////
+    glColor3f(0.9, 0.9, 0.85);
+    glVertex3f(-size, -2, zOffset - size);
+    glVertex3f(-size, -2, zOffset + size);
+    glVertex3f(-size, 5, zOffset + size);
+    glVertex3f(-size, 5, zOffset - size);
+
+    ////////////////// الحيطة اليمين //////////////////
+    glColor3f(0.85, 0.82, 0.78);
+    glVertex3f(size, -2, zOffset - size);
+    glVertex3f(size, -2, zOffset + size);
+    glVertex3f(size, 5, zOffset + size);
+    glVertex3f(size, 5, zOffset - size);
+
+    ////////////////// الحيطة قدام (باب في النص) //////////////////
+
+    float doorWidth = 3;
+    float doorHeight = 3;
+
+    // الجزء الشمال من الحيطة
+    glColor3f(0.88, 0.87, 0.83);
+    glVertex3f(-size, -2, zOffset - size);
+    glVertex3f(-doorWidth, -2, zOffset - size);
+    glVertex3f(-doorWidth, 5, zOffset - size);
+    glVertex3f(-size, 5, zOffset - size);
+
+    // الجزء اليمين
+    glVertex3f(doorWidth, -2, zOffset - size);
+    glVertex3f(size, -2, zOffset - size);
+    glVertex3f(size, 5, zOffset - size);
+    glVertex3f(doorWidth, 5, zOffset - size);
+
+    // الجزء اللي فوق الباب
+    glVertex3f(-doorWidth, doorHeight, zOffset - size);
+    glVertex3f(doorWidth, doorHeight, zOffset - size);
+    glVertex3f(doorWidth, 5, zOffset - size);
+    glVertex3f(-doorWidth, 5, zOffset - size);
+
+    glEnd();
+}
+void display() {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glLoadIdentity();
+
+    gluLookAt(camX, 2, camZ, camX, 2, camZ - 1, 0, 1, 0);
+
+    // أوضة أولى
+    drawRoom(0);
+
+    // أوضة تانية قدامها
+    drawRoom(-20);
+
+    // أوضة تالتة
+    drawRoom(-40);
+
+    glutSwapBuffers();
+}void specialKeys(int key, int x, int y) {
+    switch (key) {
+    case GLUT_KEY_UP:
+        camZ -= speed; // قدام
+        break;
+    case GLUT_KEY_DOWN:
+        camZ += speed; // ورا
+        break;
+    case GLUT_KEY_LEFT:
+        camX -= speed; // شمال
+        break;
+    case GLUT_KEY_RIGHT:
+        camX += speed; // يمين
+        break;
+    }
+    glutPostRedisplay();
+}
+
+void timer(int value) {
+    glutPostRedisplay();
+    glutTimerFunc(15, timer, 0);
+
+    anglePyramid += 2;
+    angleCube -= 2;
+}
+
+void main(int argc, char** argv) {
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
+    glutInitWindowSize(800, 600);
+    glutInitWindowPosition(50, 50);
+    glutCreateWindow("3D Shapes");
+
+    background();
+    glutDisplayFunc(display);
+    glutReshapeFunc(reshape);
+    glutTimerFunc(0, timer, 0);
+    glutSpecialFunc(specialKeys);
+    glutMainLoop();
+}

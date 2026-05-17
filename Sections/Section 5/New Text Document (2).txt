@@ -1,0 +1,420 @@
+#include <windows.h>
+#include <GL/glut.h>
+#include <cmath>
+
+GLfloat anglePyramid = 0;
+GLfloat angleCube = 0;
+float camX = 0.0f;
+float camZ = 10.0f;
+float camY = 2.0f;
+float speed = 0.8f;
+float mouseSensitivity = 0.1f;
+int lastMouseX = 0;
+int lastMouseY = 0;
+bool mousePressed = false;
+float rotationY = 0.0f;
+float rotationX = 0.0f;
+
+// Lighting setup
+void initLighting() {
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT0);
+    glEnable(GL_LIGHT1);
+    
+    // Ambient light
+    GLfloat ambientLight[] = { 0.3f, 0.3f, 0.3f, 1.0f };
+    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambientLight);
+    
+    // Light 0 - Directional light
+    GLfloat lightPos0[] = { 5.0f, 10.0f, 5.0f, 1.0f };
+    GLfloat lightColor0[] = { 0.8f, 0.8f, 0.7f, 1.0f };
+    glLightfv(GL_LIGHT0, GL_POSITION, lightPos0);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, lightColor0);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, lightColor0);
+    
+    // Light 1 - Fill light from below
+    GLfloat lightPos1[] = { 0.0f, -3.0f, 0.0f, 1.0f };
+    GLfloat lightColor1[] = { 0.4f, 0.4f, 0.5f, 1.0f };
+    glLightfv(GL_LIGHT1, GL_POSITION, lightPos1);
+    glLightfv(GL_LIGHT1, GL_DIFFUSE, lightColor1);
+}
+
+void background() {
+    glClearColor(0.05f, 0.05f, 0.1f, 1);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_TEXTURE_2D);
+    glShadeModel(GL_SMOOTH);
+    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+    initLighting();
+}
+
+void reshape(int width, int height) {
+    if (height == 0) height = 1;
+    float ratio = (float)width / height;
+    glViewport(0, 0, width, height);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluPerspective(60, ratio, 0.1, 200.0);
+    glMatrixMode(GL_MODELVIEW);
+}
+
+// Draw a textured cube for furniture
+void drawCube(float x, float y, float z, float width, float height, float depth, float r, float g, float b) {
+    glPushMatrix();
+    glTranslatef(x, y, z);
+    glScalef(width, height, depth);
+    
+    glBegin(GL_QUADS);
+    // Front face
+    glColor3f(r, g, b);
+    glNormal3f(0, 0, 1);
+    glVertex3f(-0.5, -0.5, 0.5);
+    glVertex3f(0.5, -0.5, 0.5);
+    glVertex3f(0.5, 0.5, 0.5);
+    glVertex3f(-0.5, 0.5, 0.5);
+    
+    // Back face
+    glNormal3f(0, 0, -1);
+    glVertex3f(-0.5, -0.5, -0.5);
+    glVertex3f(-0.5, 0.5, -0.5);
+    glVertex3f(0.5, 0.5, -0.5);
+    glVertex3f(0.5, -0.5, -0.5);
+    
+    // Top face
+    glNormal3f(0, 1, 0);
+    glVertex3f(-0.5, 0.5, -0.5);
+    glVertex3f(-0.5, 0.5, 0.5);
+    glVertex3f(0.5, 0.5, 0.5);
+    glVertex3f(0.5, 0.5, -0.5);
+    
+    // Bottom face
+    glNormal3f(0, -1, 0);
+    glVertex3f(-0.5, -0.5, -0.5);
+    glVertex3f(0.5, -0.5, -0.5);
+    glVertex3f(0.5, -0.5, 0.5);
+    glVertex3f(-0.5, -0.5, 0.5);
+    
+    // Right face
+    glNormal3f(1, 0, 0);
+    glVertex3f(0.5, -0.5, -0.5);
+    glVertex3f(0.5, 0.5, -0.5);
+    glVertex3f(0.5, 0.5, 0.5);
+    glVertex3f(0.5, -0.5, 0.5);
+    
+    // Left face
+    glNormal3f(-1, 0, 0);
+    glVertex3f(-0.5, -0.5, -0.5);
+    glVertex3f(-0.5, -0.5, 0.5);
+    glVertex3f(-0.5, 0.5, 0.5);
+    glVertex3f(-0.5, 0.5, -0.5);
+    glEnd();
+    
+    glPopMatrix();
+}
+
+// Draw a sphere (for decorations)
+void drawSphere(float x, float y, float z, float radius, float r, float g, float b) {
+    glPushMatrix();
+    glTranslatef(x, y, z);
+    glColor3f(r, g, b);
+    GLUquadric* quad = gluNewQuadric();
+    gluSphere(quad, radius, 32, 32);
+    gluDeleteQuadric(quad);
+    glPopMatrix();
+}
+
+// Draw a cylinder (for columns)
+void drawColumn(float x, float z, float height) {
+    glPushMatrix();
+    glTranslatef(x, -1.5f, z);
+    glColor3f(0.8f, 0.7f, 0.6f);
+    GLUquadric* quad = gluNewQuadric();
+    gluCylinder(quad, 0.3f, 0.3f, height, 16, 16);
+    gluDeleteQuadric(quad);
+    glPopMatrix();
+}
+
+void drawRoom(float zOffset, int roomType) {
+    float size = 12;
+    float wallHeight = 6;
+    float floorY = -2;
+    
+    glBegin(GL_QUADS);
+    
+    // Floor with checker pattern
+    glColor3f(0.6f, 0.55f, 0.5f);
+    for (float i = -size; i < size; i += 2) {
+        for (float j = zOffset - size; j < zOffset + size; j += 2) {
+            if ((int)(i + j) % 4 == 0)
+                glColor3f(0.7f, 0.65f, 0.6f);
+            else
+                glColor3f(0.5f, 0.45f, 0.4f);
+            
+            glVertex3f(i, floorY, j);
+            glVertex3f(i + 2, floorY, j);
+            glVertex3f(i + 2, floorY, j + 2);
+            glVertex3f(i, floorY, j + 2);
+        }
+    }
+    
+    // Walls with texture-like colors
+    // Back wall
+    glColor3f(0.85f, 0.82f, 0.78f);
+    glVertex3f(-size, floorY, zOffset - size);
+    glVertex3f(size, floorY, zOffset - size);
+    glVertex3f(size, wallHeight, zOffset - size);
+    glVertex3f(-size, wallHeight, zOffset - size);
+    
+    // Left wall
+    glColor3f(0.82f, 0.79f, 0.75f);
+    glVertex3f(-size, floorY, zOffset - size);
+    glVertex3f(-size, floorY, zOffset + size);
+    glVertex3f(-size, wallHeight, zOffset + size);
+    glVertex3f(-size, wallHeight, zOffset - size);
+    
+    // Right wall
+    glColor3f(0.82f, 0.79f, 0.75f);
+    glVertex3f(size, floorY, zOffset - size);
+    glVertex3f(size, floorY, zOffset + size);
+    glVertex3f(size, wallHeight, zOffset + size);
+    glVertex3f(size, wallHeight, zOffset - size);
+    
+    // Front wall with door
+    float doorWidth = 2.5f;
+    float doorHeight = 3.5f;
+    
+    // Left part
+    glVertex3f(-size, floorY, zOffset + size);
+    glVertex3f(-doorWidth, floorY, zOffset + size);
+    glVertex3f(-doorWidth, wallHeight, zOffset + size);
+    glVertex3f(-size, wallHeight, zOffset + size);
+    
+    // Right part
+    glVertex3f(doorWidth, floorY, zOffset + size);
+    glVertex3f(size, floorY, zOffset + size);
+    glVertex3f(size, wallHeight, zOffset + size);
+    glVertex3f(doorWidth, wallHeight, zOffset + size);
+    
+    // Above door
+    glVertex3f(-doorWidth, doorHeight, zOffset + size);
+    glVertex3f(doorWidth, doorHeight, zOffset + size);
+    glVertex3f(doorWidth, wallHeight, zOffset + size);
+    glVertex3f(-doorWidth, wallHeight, zOffset + size);
+    
+    glEnd();
+    
+    // Add ceiling
+    glBegin(GL_QUADS);
+    glColor3f(0.95f, 0.95f, 0.9f);
+    glVertex3f(-size, wallHeight, zOffset - size);
+    glVertex3f(size, wallHeight, zOffset - size);
+    glVertex3f(size, wallHeight, zOffset + size);
+    glVertex3f(-size, wallHeight, zOffset + size);
+    glEnd();
+    
+    // Add furniture based on room type
+    if (roomType == 0) {
+        // Main room with table and chairs
+        drawCube(0, -1, zOffset, 2.5f, 0.5f, 2.5f, 0.55f, 0.4f, 0.3f);
+        drawCube(1.2, -0.5, zOffset + 1.2, 0.4f, 0.8f, 0.4f, 0.3f, 0.2f, 0.15f);
+        drawCube(-1.2, -0.5, zOffset + 1.2, 0.4f, 0.8f, 0.4f, 0.3f, 0.2f, 0.15f);
+        
+        // Decorative vase
+        drawSphere(3, -1, zOffset + 3, 0.4f, 0.8f, 0.3f, 0.2f);
+        
+        // Rotating pyramid
+        glPushMatrix();
+        glTranslatef(-3, -1.5, zOffset + 2);
+        glRotatef(anglePyramid, 0, 1, 0);
+        glColor3f(0.9f, 0.5f, 0.2f);
+        glBegin(GL_TRIANGLES);
+        for (int i = 0; i < 4; i++) {
+            float angle = i * 3.14159f * 2 / 4;
+            float x1 = cos(angle) * 1;
+            float z1 = sin(angle) * 1;
+            float x2 = cos(angle + 3.14159f * 2 / 4) * 1;
+            float z2 = sin(angle + 3.14159f * 2 / 4) * 1;
+            glVertex3f(0, 1.5, 0);
+            glVertex3f(x1, -1, z1);
+            glVertex3f(x2, -1, z2);
+        }
+        glEnd();
+        glPopMatrix();
+    }
+    else if (roomType == 1) {
+        // Library room with bookshelves
+        drawCube(-4, -0.5, zOffset - 3, 1.5f, 3.0f, 1.0f, 0.6f, 0.4f, 0.2f);
+        drawCube(-2, -0.5, zOffset - 3, 1.5f, 3.0f, 1.0f, 0.6f, 0.4f, 0.2f);
+        drawCube(0, -0.5, zOffset - 3, 1.5f, 3.0f, 1.0f, 0.6f, 0.4f, 0.2f);
+        drawCube(2, -0.5, zOffset - 3, 1.5f, 3.0f, 1.0f, 0.6f, 0.4f, 0.2f);
+        drawCube(4, -0.5, zOffset - 3, 1.5f, 3.0f, 1.0f, 0.6f, 0.4f, 0.2f);
+        
+        // Center table
+        drawCube(0, -1, zOffset + 1, 2.0f, 0.5f, 2.0f, 0.7f, 0.5f, 0.3f);
+        
+        // Rotating cube
+        glPushMatrix();
+        glTranslatef(0, 0, zOffset + 1);
+        glRotatef(angleCube, 1, 1, 0);
+        drawCube(0, 0, 0, 0.8f, 0.8f, 0.8f, 0.4f, 0.6f, 0.9f);
+        glPopMatrix();
+    }
+    else if (roomType == 2) {
+        // Garden room with plants and fountain
+        drawSphere(0, -1, zOffset, 0.8f, 0.2f, 0.7f, 0.3f); // Bush
+        drawSphere(2, -1, zOffset + 2, 0.6f, 0.3f, 0.8f, 0.2f);
+        drawSphere(-2, -1, zOffset + 2, 0.6f, 0.3f, 0.8f, 0.2f);
+        drawSphere(3, -1, zOffset - 2, 0.5f, 0.2f, 0.6f, 0.2f);
+        drawSphere(-3, -1, zOffset - 2, 0.5f, 0.2f, 0.6f, 0.2f);
+        
+        // Fountain
+        drawCube(0, -1.5, zOffset + 3, 2.0f, 0.3f, 2.0f, 0.7f, 0.7f, 0.8f);
+        drawSphere(0, -0.7, zOffset + 3, 0.5f, 0.3f, 0.5f, 0.8f);
+    }
+}
+
+void display() {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glLoadIdentity();
+    
+    // Apply camera rotation
+    glRotatef(rotationX, 1, 0, 0);
+    glRotatef(rotationY, 0, 1, 0);
+    gluLookAt(camX, camY, camZ, camX, camY, camZ - 1, 0, 1, 0);
+    
+    // Draw multiple rooms with corridors
+    drawRoom(0, 0);      // Main room
+    drawRoom(-15, 1);    // Library
+    drawRoom(-30, 2);    // Garden room
+    drawRoom(15, 1);     // Extra library on the right
+    drawRoom(30, 2);     // Extra garden room
+    
+    // Add decorative columns in corridors
+    for (float x = -8; x <= 8; x += 4) {
+        drawColumn(x, -7, 5);
+        drawColumn(x, 7, 5);
+        drawColumn(x, -22, 5);
+        drawColumn(x, 22, 5);
+    }
+    
+    // Add a rotating chandelier in main room
+    glPushMatrix();
+    glTranslatef(0, 5, 0);
+    glRotatef(anglePyramid * 0.5f, 0, 1, 0);
+    glColor3f(0.9f, 0.8f, 0.5f);
+    GLUquadric* quad = gluNewQuadric();
+    gluSphere(quad, 0.3f, 16, 16);
+    gluDeleteQuadric(quad);
+    glPopMatrix();
+    
+    glutSwapBuffers();
+}
+
+void specialKeys(int key, int x, int y) {
+    switch (key) {
+    case GLUT_KEY_UP:
+        camZ -= speed * cos(rotationY * 3.14159f / 180);
+        camX -= speed * sin(rotationY * 3.14159f / 180);
+        break;
+    case GLUT_KEY_DOWN:
+        camZ += speed * cos(rotationY * 3.14159f / 180);
+        camX += speed * sin(rotationY * 3.14159f / 180);
+        break;
+    case GLUT_KEY_LEFT:
+        camX -= speed * cos(rotationY * 3.14159f / 180);
+        camZ += speed * sin(rotationY * 3.14159f / 180);
+        break;
+    case GLUT_KEY_RIGHT:
+        camX += speed * cos(rotationY * 3.14159f / 180);
+        camZ -= speed * sin(rotationY * 3.14159f / 180);
+        break;
+    }
+    glutPostRedisplay();
+}
+
+void mouseMotion(int x, int y) {
+    if (mousePressed) {
+        rotationY += (x - lastMouseX) * mouseSensitivity;
+        rotationX += (y - lastMouseY) * mouseSensitivity;
+        
+        if (rotationX > 90) rotationX = 90;
+        if (rotationX < -90) rotationX = -90;
+        
+        lastMouseX = x;
+        lastMouseY = y;
+        glutPostRedisplay();
+    }
+}
+
+void mouseButton(int button, int state, int x, int y) {
+    if (button == GLUT_LEFT_BUTTON) {
+        if (state == GLUT_DOWN) {
+            mousePressed = true;
+            lastMouseX = x;
+            lastMouseY = y;
+        } else {
+            mousePressed = false;
+        }
+    }
+}
+
+void timer(int value) {
+    glutPostRedisplay();
+    glutTimerFunc(16, timer, 0);
+    anglePyramid += 2;
+    angleCube -= 2;
+    
+    if (anglePyramid > 360) anglePyramid -= 360;
+    if (angleCube < 0) angleCube += 360;
+}
+
+void keyboard(unsigned char key, int x, int y) {
+    switch (key) {
+    case 'w':
+        camZ -= speed * cos(rotationY * 3.14159f / 180);
+        camX -= speed * sin(rotationY * 3.14159f / 180);
+        break;
+    case 's':
+        camZ += speed * cos(rotationY * 3.14159f / 180);
+        camX += speed * sin(rotationY * 3.14159f / 180);
+        break;
+    case 'a':
+        camX -= speed * cos(rotationY * 3.14159f / 180);
+        camZ += speed * sin(rotationY * 3.14159f / 180);
+        break;
+    case 'd':
+        camX += speed * cos(rotationY * 3.14159f / 180);
+        camZ -= speed * sin(rotationY * 3.14159f / 180);
+        break;
+    case 'q':
+        camY += speed;
+        break;
+    case 'e':
+        camY -= speed;
+        break;
+    case 27: // ESC
+        exit(0);
+        break;
+    }
+    glutPostRedisplay();
+}
+
+void main(int argc, char** argv) {
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
+    glutInitWindowSize(1024, 768);
+    glutInitWindowPosition(50, 50);
+    glutCreateWindow("Enhanced 3D World - Multiple Rooms");
+    
+    background();
+    
+    glutDisplayFunc(display);
+    glutReshapeFunc(reshape);
+    glutTimerFunc(0, timer, 0);
+    glutSpecialFunc(specialKeys);
+    glutKeyboardFunc(keyboard);
+    glutMouseFunc(mouseButton);
+    glutMotionFunc(mouseMotion);
+    
+    glutMainLoop();
+}

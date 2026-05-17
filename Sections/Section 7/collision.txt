@@ -1,0 +1,136 @@
+#include<Windows.h>
+#include<iostream>
+#include<cmath>
+#include<gl/glut.h>
+using namespace std;
+
+float ratio, x1 = -3.2, x2 = 3.2, speed = 0.1;
+static int flag = 1;
+bool pause = false, fullScreenMode = true;
+float xd, yd, Distance;
+void background();
+void mydraw();
+void reshape(int, int);
+void timer(int);
+void keyboard(unsigned char, int, int);
+void specialKeyboard(int, int, int);
+
+void main(int argc, char** argv) {
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE);
+
+    glutCreateWindow(" Collision ");
+    glutFullScreen();
+
+    background();
+    glutDisplayFunc(mydraw);
+    glutReshapeFunc(reshape);
+    glutTimerFunc(0, timer, 0);
+    glutKeyboardFunc(keyboard);
+    glutSpecialFunc(specialKeyboard);
+
+    glutMainLoop();
+}
+
+void background() {
+    glClearColor(0, 0, 0, 1);
+}
+
+void drawBall1()
+{
+    glColor3f(1.0, 0.0, 0.0);
+
+    glPushMatrix();
+
+    glTranslatef(x1, 0.0, -5.0);
+
+    glutSolidSphere(0.4, 20, 20);
+
+    glPopMatrix();
+}
+
+void drawBall2()
+{
+    glColor3f(0.0, 0.0, 1.0);
+
+    glPushMatrix();
+
+    glTranslatef(x2, 0.0, -5.0);
+
+    glutSolidSphere(0.4, 20, 20);
+
+    glPopMatrix();
+
+}
+
+void collision()
+{
+
+    if (flag)
+    {
+        x1 += speed;
+        x2 -= speed;
+        xd = x2 - x1;
+        yd = 0.0 - 0.0;
+        Distance = sqrtf(xd * xd + yd * yd);
+        if (0.4 + 0.4 >= Distance)
+            flag = 0;
+    }
+    if (!flag)
+    {
+        x1 -= speed;
+        x2 += speed;
+        if (x1 < -3.2)
+            flag = 1;
+    }
+}
+
+void mydraw() {
+    glClear(GL_COLOR_BUFFER_BIT );
+    glLoadIdentity();
+
+    drawBall1();
+
+    drawBall2();
+
+    collision();
+
+    glutSwapBuffers();
+}
+
+void reshape(int w, int h) {
+    if (h == 0) h = 1;
+    ratio = w / (float)h;
+    glViewport(0, 0, w, h);
+
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluPerspective(45, ratio, 1, 100);
+
+    glMatrixMode(GL_MODELVIEW);
+}
+
+void timer(int v) {
+    glutPostRedisplay();
+    glutTimerFunc(1000 / 40, timer, 0);
+}
+
+void keyboard(unsigned char key, int x, int y) {
+    if (key == 27)
+        exit(0);
+}
+
+void specialKeyboard(int key, int x, int y) {
+    if (key == GLUT_KEY_F1) {
+        fullScreenMode = !fullScreenMode;
+        if (fullScreenMode) {
+            glutFullScreen();
+        }
+        else {
+            glutReshapeWindow(GetSystemMetrics(SM_CXSCREEN) / 2,
+                GetSystemMetrics(SM_CYSCREEN) / 2);
+            glutPositionWindow(GetSystemMetrics(SM_CXSCREEN) / 4,
+                GetSystemMetrics(SM_CYSCREEN) / 4);
+        }
+    }
+}

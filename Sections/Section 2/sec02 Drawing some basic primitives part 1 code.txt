@@ -1,0 +1,70 @@
+#include<Windows.h> // get screen size
+#include<GL\glut.h>
+
+void draw();
+void reshape(int, int);
+void backGround();
+
+int main(int argc, char** argv) {
+	glutInit(&argc, argv);
+	glutInitDisplayMode(GLUT_RGB | GLUT_SINGLE);
+
+	float width = GetSystemMetrics(SM_CXSCREEN);
+	float height = GetSystemMetrics(SM_CYSCREEN);
+	glutInitWindowSize(width, height);
+	glutInitWindowPosition(0, 0);
+	glutCreateWindow("Second Section");
+	//glutFullScreen();
+
+	glutDisplayFunc(draw);
+	glutReshapeFunc(reshape);
+
+	backGround();
+
+	glutMainLoop();
+}
+
+void backGround() {
+	// color [0,1]
+	glClearColor(.5, .4, 1, 0);
+}
+
+void draw() {
+	glClear(GL_COLOR_BUFFER_BIT);
+	glLoadIdentity();
+
+	glEnable(GL_POINT_SMOOTH);
+	glPointSize(40);
+	glBegin(GL_POINTS);
+	glColor3f(1, 0, 0);
+	glVertex2f(4, 5);
+	glColor3f(0, 0, 1);
+	glVertex2f(8, 5);
+	glEnd();
+
+	/////////////////////
+
+	//glShadeModel(GL_FLAT);
+	glBegin(GL_QUADS);
+	glColor3f(1, 0, 0);
+	glVertex2f(2, -2);
+	glColor3f(0, 0, 1);
+	glVertex2f(2, 2);
+	glColor3f(0, 1, 0);
+	glVertex2f(-2, 2);
+	glColor3f(1, 1, 0);
+	glVertex2f(-2, -2);
+	glEnd();
+
+	glFlush();
+}
+
+void reshape(int w, int h) {
+	glViewport(0, 0, w, h);
+
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluOrtho2D(-10, 10, -10, 10);
+	
+	glMatrixMode(GL_MODELVIEW);
+}

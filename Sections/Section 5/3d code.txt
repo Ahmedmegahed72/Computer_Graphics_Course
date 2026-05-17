@@ -1,0 +1,155 @@
+#include <windows.h>
+#include <GL/glut.h>
+
+GLfloat anglePyramid = 0;
+GLfloat angleCube = 0;
+int refreshMills = 15;
+
+void background() {
+    glClearColor(0, 0, 0, 1);
+    glEnable(GL_DEPTH_TEST);
+}
+
+void reshape(int width, int height) {
+    if (height == 0) height = 1;
+    float ratio = (float)width / height;
+
+    glViewport(0, 0, width, height);
+
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluPerspective(45, ratio, 0.1, 100);
+    /*gluLookAt(
+      -2,5,8,
+      1,1,-5,
+      0,1,0
+      );*/
+    glMatrixMode(GL_MODELVIEW);
+}
+
+void display() {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glLoadIdentity();
+
+    ////////////////Cube/////////////////
+    glTranslatef(1.5, 0, -7);
+    glRotatef(angleCube, 1, 1, 1);
+
+    glBegin(GL_QUADS);
+    // Top face (y = 1)
+    glColor3f(0, 1, 0); // Green
+    glVertex3f(1, 1, -1);
+    glVertex3f(-1, 1, -1);
+    glVertex3f(-1, 1, 1);
+    glVertex3f(1, 1, 1);
+
+    // Bottom face (y = -1)
+    glColor3f(1, 0.5, 0); // Orange
+    glVertex3f(1, -1, 1);
+    glVertex3f(-1, -1, 1);
+    glVertex3f(-1, -1, -1);
+    glVertex3f(1, -1, -1);
+
+    // Front face  (z = 1)
+    glColor3f(1, 0, 0); // Red
+    glVertex3f(1, 1, 1);
+    glVertex3f(-1, 1, 1);
+    glVertex3f(-1, -1, 1);
+    glVertex3f(1, -1, 1);
+
+    // Back face (z = -1)
+    glColor3f(1, 1, 0); // Yellow
+    glVertex3f(1, -1, -1);
+    glVertex3f(-1, -1, -1);
+    glVertex3f(-1, 1, -1);
+    glVertex3f(1, 1, -1);
+
+    // Right face (x = 1)
+    glColor3f(1, 0, 1); // Magenta
+    glVertex3f(1, 1, -1);
+    glVertex3f(1, 1, 1);
+    glVertex3f(1, -1, 1);
+    glVertex3f(1, -1, -1);
+
+    // Left face (x = -1)
+    glColor3f(0, 0, 1); // Blue
+    glVertex3f(-1, 1, 1);
+    glVertex3f(-1, 1, -1);
+    glVertex3f(-1, -1, -1);
+    glVertex3f(-1, -1, 1);
+
+    glEnd();
+
+    ////////////////Pyramid/////////////////
+    glLoadIdentity();
+    glTranslatef(-1.5, 0, -6);
+    glRotatef(anglePyramid, 0, 1, 0);
+
+    glBegin(GL_TRIANGLES);
+    //front
+    glColor3f(1, 0, 0); // Red
+    glVertex3f(0, 1, 0);
+    glColor3f(0, 1, 0); // Green
+    glVertex3f(-1, -1, 1);
+    glColor3f(0, 0, 1); // Blue
+    glVertex3f(1, -1, 1);
+
+    //back
+    glColor3f(1, 0, 0); // Red
+    glVertex3f(0, 1, 0);
+    glColor3f(0, 1, 0); // Green
+    glVertex3f(1, -1, -1);
+    glColor3f(0, 0, 1); // Blue
+    glVertex3f(-1, -1, -1);
+
+    //right
+    glColor3f(1, 0, 0); // Red
+    glVertex3f(0, 1, 0);
+    glColor3f(0, 0, 1); // Blue
+    glVertex3f(1, -1, 1);
+    glColor3f(0, 1, 0); // Green
+    glVertex3f(1, -1, -1);
+
+    //left
+    glColor3f(1, 0, 0);   // Red
+    glVertex3f(0, 1, 0);
+    glColor3f(0, 0, 1);   // Blue
+    glVertex3f(-1, -1, -1);
+    glColor3f(0, 1, 0);   // Green
+    glVertex3f(-1, -1, 1);
+    glEnd();
+
+    //base
+    glBegin(GL_QUADS);
+    glColor3f(1, 1, 1); 
+    glVertex3f(-1, -1, 1);   
+    glVertex3f(1, -1, 1);    
+    glVertex3f(1, -1, -1);   
+    glVertex3f(-1, -1, -1);  
+    glEnd();
+
+    glutSwapBuffers();
+}
+
+void timer(int value) {
+    glutPostRedisplay();
+    glutTimerFunc(refreshMills, timer, 0);
+
+    anglePyramid += 0.5;
+    angleCube -= 0.5;
+}
+
+void main(int argc, char** argv) {
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
+    glutInitWindowSize(800, 600);
+    glutInitWindowPosition(50, 50);
+    glutCreateWindow("3D Shapes");
+
+    background();
+    glutDisplayFunc(display);
+    glutReshapeFunc(reshape);
+    glutTimerFunc(0, timer, 0);
+
+    glutMainLoop();
+}
